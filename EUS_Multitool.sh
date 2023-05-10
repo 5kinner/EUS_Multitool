@@ -26,7 +26,7 @@ multitoolsettings="$HOME/Library/Application Support/multitool/multitoolsettings
 
 if [ ! -f "$dialogApp" ]; then
 echo "Installing Swiftdialog"
-/usr/local/jamf/bin/jamf policy -event SwiftDialog_Install
+/usr/local/jamf/bin/jamf policy -event custom_trigger
 else
 echo "Swiftdialog installed, continuing ..."
 fi
@@ -113,7 +113,7 @@ dialogCMD="$dialogApp --ontop --title \"$dialogTitle\" \
 --icon \"$mainIcon\" \
 --moveable \
 --button1text \"OK\" \
---button2text \"Cancel\" \
+--button2text \"Quit\" \
 --overlayicon \"$overlayIcon\" \
 --titlefont 'size=28' \
 --messagefont 'size=28' \
@@ -179,7 +179,7 @@ fi
 
 if [ "$option" == "Change LAPS Password" ]; then
 
-GroupID="1271"
+GroupID="1111"
 GroupName="Change LAPS Password"
 
 # API endpoint
@@ -230,7 +230,7 @@ fi
 
 if [ "$option" == "Change Personal Recovery Key" ]; then
   
-GroupID="1272"
+GroupID="1111"
 GroupName="Change Personal Recovery Key"
 
 # API endpoint
