@@ -17,9 +17,9 @@ After being authorised the tool allows for input of a Jamf managed serial. If an
 
 Currently the options available are;
 
-  View LAPS password (from macOSLaps extension Attribute)
-  View PRK
-  Change LAPS password
-  Change PRK
+View LAPS password (from macOSLaps extension Attribute)
+View PRK
+Change LAPS password
+Change PRK
   
- The changing of LAPS/PRK really only adds the machine to a static group scoped to run once Jamf policy. I'd like to develeop this to flush and remove form the group once the policy has ran.
+The changing of LAPS/PRK really only adds the machine to a static group scoped to run once Jamf policy. I'd like to develeop this to flush and remove form the group once the policy has ran.
