@@ -15,7 +15,7 @@ After being authorised the tool allows for input of a Jamf managed serial. If an
 
 ![Error](https://github.com/5kinner/EUS_Multitool/assets/33225587/6051c477-c67a-40b1-860d-0c9e5e004a3d)
 
-Currently the options available are;
+Currently the options available are:
 
 View LAPS password (from macOSLaps extension Attribute)
 View PRK
