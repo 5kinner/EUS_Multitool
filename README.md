@@ -1,15 +1,15 @@
 # EUS_Multitool
 A tool using swiftdialog at it's core to enable End User Services technicians to perform daily tasks without the need to login to Jamf
 
-Caveats - This has been created for a specific need in our environment using tools/scripts the awesome macamdin community has created. Please review the code and adjust for your environment. I'm still actively developing (and correcting) this code. Please be nice ;-)
+Important Considerations: This solution has been developed to address a specific requirement within our environment, utilising the awesome tools and scripts provided by the macamdin community. We kindly request you to thoroughly examine the code and tailor it to suit your unique environment. It is worth mentioning that the code is currently undergoing active development and refinement. Your constructive feedback and courtesy are greatly appreciated.
 
-The tool prompts for credentials that can be saved. If 'Save' is selected the credentials are saved locally.
+The tool prompts for credentials that can be saved. If 'Save' is selected the credentials are saved locally in the following places:
   Username in ~/Library/Application Support/multitool
   Password in Keychain 'Multitool'
 
-![Initial_Prompt](https://github.com/5kinner/EUS_Multitool/assets/33225587/f2430ff8-7475-4114-a113-c99014cb5189)
+![Initial_Prompt](https://github.com/5kinner/EUS_Multitool/assets/33225587/2de70aad-5a0d-41ad-b9da-1aaea95baf1f)
 
-After authorised the tool allows for input of a Jamf managed serial. If an incorrect Serial is entered an error message appears and you have the option to try again.
+After being authorised the tool allows for input of a Jamf managed serial. If an incorrect serial is entered an error message appears and you have the option to try again.
 
 ![Tool](https://github.com/5kinner/EUS_Multitool/assets/33225587/f6cfcff3-d14f-4722-ac15-42ae5ec86f41)
 
