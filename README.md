@@ -28,4 +28,4 @@ Currently the options available are:
 
 ![Options](https://github.com/5kinner/EUS_Multitool/assets/33225587/5fc6de71-b74c-4be2-ba17-dc3c3ef3663d)
 
-The changing of LAPS/PRK really only adds the machine to a static group scoped to run once Jamf policy. I'd like to develeop this to flush and remove form the group once the policy has ran.
+The changing of LAPS/PRK really only adds the machine to a static group scoped to run once Jamf policy. I'd like to develeop this to flush and remove from the group once the policy has ran.
