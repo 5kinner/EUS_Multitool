@@ -6,7 +6,16 @@
 # Special Thanks to: Bart Reardon, Dan Snelson, Kyle Ericson, Rich Trouton
 #
 ####################################################################################################
-#checking
+
+# Get current Logged in User
+loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
+echo $loggedInUser
+
+# Stdout/Stderr redirect local logfile
+date=$(date +"%Y-%m-%d-%H:%M:%S")
+set -xv; exec 1>/Users/$loggedInUser/Desktop/jamfPolicy_$date.txt 2>&1
+
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Set Variables
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -14,8 +23,8 @@
 dialogApp="/usr/local/bin/dialog"
 dialogCommandFile="/var/tmp/dialog.log"
 dialogTitle="EUS Multitool     ⚒️"
-JSS_URL="https://your.jamfurl.com"
-jamfEA="100"
+JSS_URL="https://yourJSSurl.com"
+jamfEA="999"
 mainIcon="SF=wand.and.stars,weight=semibold,colour1=#ef9d51,colour2=#ef7951"
 overlayIcon=$( defaults read /Library/Preferences/com.jamfsoftware.jamf.plist self_service_app_path )
 multitoolsettings="$HOME/Library/Application Support/multitool/multitoolsettings.plist"
@@ -26,7 +35,7 @@ multitoolsettings="$HOME/Library/Application Support/multitool/multitoolsettings
 
 if [ ! -f "$dialogApp" ]; then
 echo "Installing Swiftdialog"
-/usr/local/jamf/bin/jamf policy -event custom_trigger
+/usr/local/jamf/bin/jamf policy -event SwiftDialog_Install
 else
 echo "Swiftdialog installed, continuing ..."
 fi
@@ -102,6 +111,31 @@ output=$( eval "$dialogMSG" )
 
 }
 
+######## ABM CHECK ############################# ABM CHECK ########
+
+function ABM_Check() {
+
+ABMserial="$serial"
+
+ABMList=$(curl -s -H "accept: application/json" -H "Authorization: Bearer $api_token" $JSS_URL/api/v1/device-enrollments/1/devices)
+echo "$ABMList"
+
+  if echo "$ABMList" | grep -q $serial; then
+    echo "Serial number: $serial is present in ABM."
+    Alerticon="SF=checkmark,color=green,bgcolor=none"
+    message="The Computer with Serial : "$serial"\n\n ... was found in ABM."
+  else
+    echo "Error: Serial number is not in ABM"
+    Alerticon="SF=xmark,color=red,bgcolor=none"
+    message="The Computer with Serial : "$serial"\n\n ... wasn't found in ABM. Please try again incase of mistyped serial characters."  
+  fi
+# Display the info to the user
+$dialogApp --title "$dialogTitle" --button1text "OK" --mini --message "$message" --icon "$Alerticon" -p
+
+exit
+
+}
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Initial Dialog prompt with check for serial in Jamf
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -119,7 +153,7 @@ dialogCMD="$dialogApp --ontop --title \"$dialogTitle\" \
 --messagefont 'size=28' \
 --textfield \"Serial\",required=true,prompt=\"Please enter the Serial Number\" \
 --selecttitle \"Select an Option\" \
---selectvalues \"View LAPS Password,View Personal Recovery Key,––––––––––––––––––––––––––––,Change LAPS Password,Change Personal Recovery Key\" \
+--selectvalues \"View LAPS Password,View Personal Recovery Key,––––––––––––––––––––––––––––,Change LAPS Password,Change Personal Recovery Key,––––––––––––––––––––––––––––,Enable Remote Desktop,Check device in ABM\" \
 --position 'centre' \
 --quitkey k"
 
@@ -134,20 +168,29 @@ echo "Serial : ${serial}"
 echo "Option : ${option}"
 echo "Result: $result"
 
-if [[ ${result} -ne 0 ]]; then
+if [ "$option" == "Check device in ABM" ]; then
 
-  echo "Cancelled by User"
-  exit 0
+#Run ABM_Check Function
+ABM_Check
 
 else
 
-  computerCheck=$(/usr/bin/curl -s -H "Authorization: Bearer $api_token" -H "Accept: application/xml" "${JSS_URL}/JSSResource/computers/serialnumber/${serial}/subset/general" | xpath -e '//computer/general/id/text()' )
+  if [[ ${result} -ne 0 ]]; then
 
-  if [[ -z ${computerCheck} ]]; then
-    echo "Error: Serial number is not in Jamf"
-    $dialogApp --title "$dialogTitle" --button1text "Try Again" --mini --message "\nComputer not found in Jamf. Please check serial number and try again." --icon /System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertStopIcon.icns -p
+    echo "Cancelled by User"
+    exit 0
+
   else
-    echo "Serial number: $serial is valid."
+
+    computerCheck=$(/usr/bin/curl -s -H "Authorization: Bearer $api_token" -H "Accept: application/xml" "${JSS_URL}/JSSResource/computers/serialnumber/${serial}/subset/general" | xpath -e '//computer/general/id/text()' )
+
+    if [[ -z ${computerCheck} ]]; then
+      echo "Error: Serial number is not in Jamf"
+      $dialogApp --title "$dialogTitle" --button1text "Try Again" --mini --message "\nComputer not found in Jamf. Please check serial number and try again." --icon /System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertStopIcon.icns -p
+    else
+      echo "Serial number: $serial is valid."
+    fi
+
   fi
 
 fi
@@ -179,7 +222,7 @@ fi
 
 if [ "$option" == "Change LAPS Password" ]; then
 
-GroupID="1111"
+GroupID="9999"
 GroupName="Change LAPS Password"
 
 # API endpoint
@@ -230,7 +273,7 @@ fi
 
 if [ "$option" == "Change Personal Recovery Key" ]; then
   
-GroupID="1111"
+GroupID="9999"
 GroupName="Change Personal Recovery Key"
 
 # API endpoint
@@ -256,6 +299,34 @@ message="The PRK for "$serial"\n\n ... is scheduled for change.\n\nThis may take
 # Display the info to the user
 show_dialog_msg
 
+fi
+
+######## ENABLE REMOTE DESKTOP ############################# ENABLE REMOTE DESKTOP ########
+######## ENABLE REMOTE DESKTOP ############################# ENABLE REMOTE DESKTOP ########
+
+if [ "$option" == "Enable Remote Desktop" ]; then
+
+RemoteCommand="EnableRemoteDesktop"
+
+machineID=$(curl -s -H "accept: text/xml" -H "Authorization: Bearer $api_token" $JSS_URL/JSSResource/computers/serialnumber/$serial | xmllint --xpath '/computer/general/id/text()' - )
+echo $machineID
+
+# API endpoint
+API_URL="JSSResource/computercommands/command/$RemoteCommand/id/${machineID}"
+echo $API_URL
+
+curl -s \
+	--header "Authorization: Bearer ${api_token}" --header "Content-Type: text/xml" \
+	--url "${JSS_URL}/${API_URL}" \
+  --request POST \
+
+echo "The Computer with Serial $serial has had Remote Desktop Enabled"
+    
+message="The Computer with "$serial"\n\n ... has had Remote Desktop Enabled"
+
+# Display the info to the user
+show_dialog_msg
+  
 fi
 
 # Invalidate the Bearer Token
