@@ -7,13 +7,13 @@
 #
 ####################################################################################################
 
-# Get current Logged in User
-loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
-echo $loggedInUser
+# Get current Logged in User needed for debugging
+#loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
+#echo $loggedInUser
 
-# Stdout/Stderr redirect local logfile
-date=$(date +"%Y-%m-%d-%H:%M:%S")
-set -xv; exec 1>/Users/$loggedInUser/Desktop/jamfPolicy_$date.txt 2>&1
+# Stdout/Stderr redirect local logfile for debugging
+#date=$(date +"%Y-%m-%d-%H:%M:%S")
+#set -xv; exec 1>/Users/$loggedInUser/Desktop/jamfPolicy_$date.txt 2>&1
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -57,7 +57,6 @@ else
   --icon "$mainIcon" \
   --overlayicon "SF=lock.circle.fill,Palette=red,white,white,bgcolor=none" \
   --message "Please enter authentication details for use with the Mutlitool Application" \
-  --small \
   --moveable \
   --button2 \
   --textfield "Username",required \
