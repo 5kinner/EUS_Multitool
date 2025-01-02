@@ -1,6 +1,8 @@
 #!/bin/bash
 ####################################################################################################
 #
+# DEVLOPEMENT
+#
 # Using Swiftdialog to help Technicians in daily duties without having to interact with Jamf
 #
 # Special Thanks to: Bart Reardon, Dan Snelson, Kyle Ericson, Rich Trouton
@@ -17,7 +19,7 @@
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Set Variables TEST
+# Set Variables
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 dialogApp="/usr/local/bin/dialog"
