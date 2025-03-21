@@ -1,7 +1,7 @@
 #!/bin/bash
 ####################################################################################################
 #
-# DEVLOPEMENT
+# DEVELOPEMENT
 #
 # Using Swiftdialog to help Technicians in daily duties without having to interact with Jamf
 #
@@ -37,7 +37,7 @@ multitoolsettings="$HOME/Library/Application Support/multitool/multitoolsettings
 
 if [ ! -f "$dialogApp" ]; then
 echo "Installing Swiftdialog"
-/usr/local/jamf/bin/jamf policy -event SwiftDialog_Install
+/usr/local/jamf/bin/jamf policy -event custom_trigger
 else
 echo "Swiftdialog installed, continuing ..."
 fi
