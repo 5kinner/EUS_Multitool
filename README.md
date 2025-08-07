@@ -22,6 +22,10 @@ EUS Multitool is a Bash-based utility designed to assist IT technicians in manag
   - Clear passcode.
   - Restart device.
 
+<img width="932" height="520" alt="EUS_Multitool_1" src="https://github.com/user-attachments/assets/d75ff67a-5f64-440b-a7da-021e11598483" />
+
+<img width="932" height="660" alt="EUS_Multitool_2" src="https://github.com/user-attachments/assets/0f7640e4-af06-4445-a92a-645aa97043f3" />
+
 ## Dependencies
 
 - **SwiftDialog**: Used for GUI prompts and user interaction.
