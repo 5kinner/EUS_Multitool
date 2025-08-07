@@ -96,6 +96,7 @@ function show_dialog_msg() {
   local dialogMSG="$dialogApp --ontop --title \"$dialogTitle\" \
   --message \"$message\" \
   --icon \"$mainIcon\" \
+  --appearance 'light' \
   --moveable \
   --button1text \"OK\" \
   --overlayicon \"$overlayIcon\" \
@@ -115,8 +116,9 @@ output=$( eval "$dialogMSG" )
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 dialogCMD="$dialogApp --ontop --title \"$dialogTitle\" \
---message \"Please enter the Serial you need information on.\n\n\nA check to ensure the device is in ABM and assigned to Jamf will be done.\n\n\nPlease allow time for this to complete.\" \
+--message \"Please enter the Serial you need information on.\" \
 --icon \"$mainIcon\" \
+--appearance 'light' \
 --moveable \
 --checkbox \"Computer\" \
 --checkbox \"Mobile Device\" \
@@ -126,6 +128,8 @@ dialogCMD="$dialogApp --ontop --title \"$dialogTitle\" \
 --titlefont 'size=28' \
 --messagefont 'size=24' \
 --textfield \"Serial\",required=true,prompt=\"Please enter the Serial Number\" \
+--messagealignment 'centre' \
+--messageposition 'centre' \
 --position 'centre' \
 --quitkey k"
 
@@ -160,10 +164,12 @@ if [[ "$computer" == "true" ]]; then
       deviceType="computer"
       checkPrestageAPI="v3/computer-prestages"
       checkPrestageAPIscope="v2/computer-prestages"
+      selectOptions="\"ABM Check,Check Prestage Assignment,––––––––––––––––––––––––––––,View LAPS Password,View Personal Recovery Key,––––––––––––––––––––––––––––,Change LAPS Password,Change Personal Recovery Key,––––––––––––––––––––––––––––,Enable Remote Desktop\" "
 elif [[ "$mobile" == "true" ]]; then
       deviceType="mobile"
       checkPrestageAPI="v2/mobile-device-prestages"
       checkPrestageAPIscope="v2/mobile-device-prestages"
+      selectOptions="\"ABM Check,Check Prestage Assignment,––––––––––––––––––––––––––––,Assign Device to User,––––––––––––––––––––––––––––,Update Inventory,Clear Passcode,Restart Device\" "
 else
       echo "Error: No Device Type Checked"
       Alerticon="SF=xmark,color=red,bgcolor=none"
@@ -176,24 +182,14 @@ fi
 echo "Device Type Selected: $deviceType"
 echo "Serial : ${serial}"
 
-########## ABM CHECK ############################# ABM CHECK ########
-  ABMList=$(curl -s -H "accept: application/json" -H "Authorization: Bearer $access_token" $JSS_URL/api/v1/device-enrollments/1/devices)
-  echo "$ABMList"
-
-    if echo "$ABMList" | grep -q $serial; then
-      echo "Serial number: $serial is present in ABM."
-    else
-      echo "Error: Serial number is not in ABM"
-      Alerticon="SF=xmark,color=red,bgcolor=none"
-      message="The Computer with Serial : "$serial"\n\n ... wasn't found in ABM. Please try again incase of mistyped serial characters." 
-      # Display the info to the user
-      show_dialog_msg
-      exit 0
-    fi
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Option Dialog prompt, User to select relevant Options
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 dialogCMD="$dialogApp --ontop --title \"$dialogTitle\" \
---message \"What action would you like to perform on the device with\n\nSerial: $serial.\" \
+--message \"What action would you like to perform on the device with\n\nSerial: **$serial**.\" \
 --icon \"$mainIcon\" \
+--appearance 'light' \
 --moveable \
 --button1text \"OK\" \
 --button2text \"Quit\" \
@@ -201,7 +197,9 @@ dialogCMD="$dialogApp --ontop --title \"$dialogTitle\" \
 --titlefont 'size=28' \
 --messagefont 'size=24' \
 --selecttitle \"Select an Option\" \
---selectvalues \"View LAPS Password,View Personal Recovery Key,––––––––––––––––––––––––––––,Change LAPS Password,Change Personal Recovery Key,––––––––––––––––––––––––––––,Enable Remote Desktop,––––––––––––––––––––––––––––,Check Prestage Assignment\" \
+--selectvalues ${selectOptions} \
+--messagealignment 'centre' \
+--messageposition 'centre' \
 --position 'centre' \
 --quitkey k"
 
@@ -219,177 +217,28 @@ echo "Result: $result"
 # User selection actions. View/Change LAPS/PRK
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-######## VIEW LAPS PASSWORD ############################# VIEW LAPS PASSWORD ########
-######## VIEW LAPS PASSWORD ############################# VIEW LAPS PASSWORD ########
+######## ABM CHECK ############################# ABM CHECK ########
+######## ABM CHECK ############################# ABM CHECK ########
 
-if [[ "$option" == "View LAPS Password" ]] && [[ "$deviceType" == "computer" ]]; then
+if [[ "$option" == "ABM Check" ]]; then
 
-  # API command to grab the LAPS password for the given serial 
-  LAPS=$(curl -v -s -H "accept: application/json" -H "Authorization: Bearer $access_token" "$JSS_URL/api/v1/computers-inventory?section=EXTENSION_ATTRIBUTES&page=0&page-size=100&filter=hardware.serialNumber==$serial")
-  
-  LAPS_Details=$(echo $LAPS | jq -r '.results[0].extensionAttributes[] | select(.definitionId == "103") | .values[0]')
-  LAPS_Password=$(echo "$LAPS_Details" | awk -F'|' '{print $1}' | awk -F': ' '{print $2}' )
-  LAPS_Expiration=$(echo "$LAPS_Details" | awk -F'|' '{print $2}' | awk -F': ' '{print $2}')
-  echo "Password: $LAPS_Password"
-  echo "Expiration: $LAPS_Expiration"
+ABMList=$(curl -s -H "accept: application/json" -H "Authorization: Bearer $access_token" $JSS_URL/api/v1/device-enrollments/1/devices)
+  echo "$ABMList"
 
-  # Copy the password to the clipboard
-  echo "$LAPS_Password" | pbcopy
+  if echo "$ABMList" | grep -q $serial; then
+    echo "Serial number: $serial is present in ABM."
+    message="The Serial : **"$serial"**\n\n ... is present in ABM." 
+    # Display the info to the user
+    show_dialog_msg
+  else
+    echo "Error: Serial number is not in ABM"
+    Alerticon="SF=xmark,color=red,bgcolor=none"
+    message="The Computer with Serial : **"$serial"**\n\n ... wasn't found in ABM. Please try again incase of mistyped serial characters." 
+    # Display the info to the user
+    show_dialog_msg
+    exit 0
+  fi
 
-  message="The LAPS password for\n\n"$serial" is:\n\n"$LAPS_Password"\n\n Expiration: "$LAPS_Expiration""
-
-  # Display the info to the user
-  show_dialog_msg
-
-elif [[ "$option" == "View LAPS Password" ]] && [[ "$deviceType" != "computer" ]]; then
-
-  echo "Error: View Laps Password, but not with Computer option checked"
-  Alerticon="SF=xmark,color=red,bgcolor=none"
-  message="This option is only available for Computers, you may have selected Mobile Device, ... please try again" 
-  # Display the info to the user
-  show_dialog_msg
-  exit 0
-
-fi
-
-######## CHANGE LAPS PASSWORD ############################# CHANGE LAPS PASSWORD ########
-######## CHANGE LAPS PASSWORD ############################# CHANGE LAPS PASSWORD ########
-
-if [[ "$option" == "Change LAPS Password" ]] && [[ "$deviceType" == "computer" ]]; then
-
-GroupID="1271"
-GroupName="Change LAPS Password"
-
-# API endpoint
-API_URL="JSSResource/computergroups/id/${GroupID}"
-echo $API_URL
-  
-# API data adding to the endpoint
-apiData="<computer_group><id>${GroupID}</id><name>${GroupName}</name><computer_additions><computer><name>$serial</name></computer></computer_additions></computer_group>"
-echo $apiData
-
-curl -s \
-	--header "Authorization: Bearer $access_token" --header "Content-Type: text/xml" \
-	--url "${JSS_URL}/${API_URL}" \
-	--data "${apiData}" \
-  --request PUT \
-echo "The Computer with Serial $serial has been added to the static group"
-    
-message="The LAPS password for "$serial"\n\n ... is scheduled for change.\n\nThis may take a few hours."
-
-# Display the info to the user
-show_dialog_msg
-
-elif [[ "$option" == "Change LAPS Password" ]] && [[ "$deviceType" != "computer" ]]; then
-
-  echo "Error: Change Laps Password, but not with Computer option checked"
-  Alerticon="SF=xmark,color=red,bgcolor=none"
-  message="This option is only available for Computers, you may have selected Mobile Device, ... please try again" 
-  # Display the info to the user
-  show_dialog_msg
-  exit 0
-
-fi
-
-######## VIEW RECOVERY KEY ############################# VIEW LAPS PASSWORD ########
-######## VIEW RECOVERY KEY ############################# VIEW LAPS PASSWORD ########
-
-if [[ "$option" == "View Personal Recovery Key" ]] && [[ "$deviceType" == "computer" ]]; then
-  
-#machineID=$(curl -s -H "accept: text/xml" -H "Authorization: Bearer $access_token" $JSS_URL/JSSResource/computers/serialnumber/$serial | xmllint --xpath '/computer/general/id/text()' - )
-#echo $machineID
-
-# API command to grab the LAPS password for the given serial 
-machineID=$(curl -s -H "accept: application/json" -H "Authorization: Bearer $access_token" "$JSS_URL/api/v1/computers-inventory?section=GENERAL&page=0&page-size=100&filter=hardware.serialNumber==$serial" | jq -r '.results[0].id')
-echo "machineID :"$machineID
-
-PRK=$(curl -s -H "accept: application/json" -H "Authorization: Bearer $access_token" "$JSS_URL/api/v1/computers-inventory/$machineID/filevault" | jq -r '.personalRecoveryKey' )
-echo $PRK
-
-    if [[ $PRK == "null" ]]; then
-          message="The computer with serial : $serial \n\n doesn't have a recovery key in Jamf."
-        else
-          message="The Personal Recovery Key for\n\n"$serial" is:\n\n"$PRK""
-    fi
-
-# Display the info to the user
-show_dialog_msg
-  
-fi
-
-######## CHANGE RECOVERY KEY ############################# CHANGE RECOVERY KEY ########
-######## CHANGE RECOVERY KEY ############################# CHANGE RECOVERY KEY ########
-
-if [[ "$option" == "Change Personal Recovery Key" ]] && [[ "$deviceType" == "computer" ]]; then
-  
-GroupID="1272"
-GroupName="Change LAPS Password"
-
-# API endpoint
-API_URL="JSSResource/computergroups/id/${GroupID}"
-echo $API_URL
-  
-# API data adding to the endpoint
-apiData="<computer_group><id>${GroupID}</id><name>${GroupName}</name><computer_additions><computer><name>$serial</name></computer></computer_additions></computer_group>"
-echo $apiData
-
-curl -s \
-	--header "Authorization: Bearer $access_token" --header "Content-Type: text/xml" \
-	--url "${JSS_URL}/${API_URL}" \
-	--data "${apiData}" \
-  --request PUT \
-echo "The Computer with Serial $serial has been added to the static group"
-    
-message="The LAPS password for "$serial"\n\n ... is scheduled for change.\n\nThis may take a few hours."
-
-# Display the info to the user
-show_dialog_msg
-
-elif [[ "$option" == "Change Personal Recovery Key" ]] && [[ "$deviceType" != "computer" ]]; then
-
-  echo "Error: Change Recovery Key, but not with Computer option checked"
-  Alerticon="SF=xmark,color=red,bgcolor=none"
-  message="This option is only available for Computers, you may have selected Mobile Device, ... please try again" 
-  # Display the info to the user
-  show_dialog_msg
-  exit 0
-
-fi
-
-######## ENABLE REMOTE DESKTOP ############################# ENABLE REMOTE DESKTOP ########
-######## ENABLE REMOTE DESKTOP ############################# ENABLE REMOTE DESKTOP ########
-
-if [[ "$option" == "Enable Remote Desktop" ]] && [[ "$deviceType" == "computer" ]]; then
-
-  RemoteCommand="EnableRemoteDesktop"
-
-  machineID=$(curl -s -H "accept: text/xml" -H "Authorization: Bearer $access_token" $JSS_URL/JSSResource/computers/serialnumber/$serial | xmllint --xpath '/computer/general/id/text()' - )
-  echo $machineID
-
-  # API endpoint
-  API_URL="JSSResource/computercommands/command/$RemoteCommand/id/${machineID}"
-  echo $API_URL
-
-  curl -s \
-    --header "Authorization: Bearer ${access_token}" --header "Content-Type: text/xml" \
-    --url "${JSS_URL}/${API_URL}" \
-    --request POST \
-
-  echo "The Computer with Serial $serial has had Remote Desktop Enabled"
-      
-  message="The Computer with "$serial"\n\n ... has had Remote Desktop Enabled"
-
-  # Display the info to the user
-  show_dialog_msg
-
-elif [[ "$option" == "Enable Remote Desktop" ]] && [[ "$deviceType" != "computer" ]]; then
-  echo "Error: Enable Remote Desktop selected, but not with Computer option checked"
-  Alerticon="SF=xmark,color=red,bgcolor=none"
-  message="This option is only available for Computers, you may have selected Mobile Device, ... please try again" 
-  # Display the info to the user
-  show_dialog_msg
-  exit 0
-  
 fi
 
 ######## CHECK PRESTAGE ASSIGNMENT ############################# CHECK PRESTAGE ASSIGNMENT ########
@@ -416,16 +265,278 @@ if [[ "$option" == "Check Prestage Assignment" ]]; then
     if [[ -n "$prestage_id" ]]; then
       prestage_name=$(get_prestage_name "$prestage_id")
         if [[ -n "$prestage_name" ]]; then
-          message="The assigned prestage for\n\n $serial\n\nis $prestage_name."
+          message="The assigned prestage for\n\n **$serial**\n\nis **$prestage_name**."
         else
           message="Prestage ID $prestage_id not found."
         fi
     else
-      message="Serial number $serial not found."
+      message="Serial number **$serial** not found."
     fi
 
 # Display the info to the user
   show_dialog_msg
+
+fi
+
+######## VIEW LAPS PASSWORD ############################# VIEW LAPS PASSWORD ########
+######## VIEW LAPS PASSWORD ############################# VIEW LAPS PASSWORD ########
+
+if [[ "$option" == "View LAPS Password" ]]; then
+
+  # API command to grab the LAPS password for the given serial 
+  LAPS=$(curl -v -s -H "accept: application/json" -H "Authorization: Bearer $access_token" "$JSS_URL/api/v1/computers-inventory?section=EXTENSION_ATTRIBUTES&page=0&page-size=100&filter=hardware.serialNumber==$serial")
+  
+  LAPS_Details=$(echo $LAPS | jq -r '.results[0].extensionAttributes[] | select(.definitionId == "103") | .values[0]')
+  LAPS_Password=$(echo "$LAPS_Details" | awk -F'|' '{print $1}' | awk -F': ' '{print $2}' )
+  LAPS_Expiration=$(echo "$LAPS_Details" | awk -F'|' '{print $2}' | awk -F': ' '{print $2}')
+  echo "Password: $LAPS_Password"
+  echo "Expiration: $LAPS_Expiration"
+
+  # Copy the password to the clipboard
+  echo "$LAPS_Password" | pbcopy
+
+  message="The LAPS password for\n\n**"$serial"** is:\n\n"$LAPS_Password"\n\n Expiration: "$LAPS_Expiration""
+
+  # Display the info to the user
+  show_dialog_msg
+
+fi
+
+######## CHANGE LAPS PASSWORD ############################# CHANGE LAPS PASSWORD ########
+######## CHANGE LAPS PASSWORD ############################# CHANGE LAPS PASSWORD ########
+
+if [[ "$option" == "Change LAPS Password" ]]; then
+
+GroupID="1271"
+GroupName="Change LAPS Password"
+
+# API endpoint
+API_URL="JSSResource/computergroups/id/${GroupID}"
+echo $API_URL
+  
+# API data adding to the endpoint
+apiData="<computer_group><id>${GroupID}</id><name>${GroupName}</name><computer_additions><computer><name>$serial</name></computer></computer_additions></computer_group>"
+echo $apiData
+
+curl -s \
+	--header "Authorization: Bearer $access_token" --header "Content-Type: text/xml" \
+	--url "${JSS_URL}/${API_URL}" \
+	--data "${apiData}" \
+  --request PUT \
+echo "The Computer with Serial **$serial** has been added to the static group"
+    
+message="The LAPS password for **"$serial"**\n\n ... is scheduled for change.\n\nThis may take a few hours."
+
+# Display the info to the user
+show_dialog_msg
+
+fi
+
+######## VIEW RECOVERY KEY ############################# VIEW LAPS PASSWORD ########
+######## VIEW RECOVERY KEY ############################# VIEW LAPS PASSWORD ########
+
+if [[ "$option" == "View Personal Recovery Key" ]]; then
+  
+#machineID=$(curl -s -H "accept: text/xml" -H "Authorization: Bearer $access_token" $JSS_URL/JSSResource/computers/serialnumber/$serial | xmllint --xpath '/computer/general/id/text()' - )
+#echo $machineID
+
+# API command to grab the LAPS password for the given serial 
+machineID=$(curl -s -H "accept: application/json" -H "Authorization: Bearer $access_token" "$JSS_URL/api/v1/computers-inventory?section=GENERAL&page=0&page-size=100&filter=hardware.serialNumber==$serial" | jq -r '.results[0].id')
+echo "machineID :"$machineID
+
+PRK=$(curl -s -H "accept: application/json" -H "Authorization: Bearer $access_token" "$JSS_URL/api/v1/computers-inventory/$machineID/filevault" | jq -r '.personalRecoveryKey' )
+echo $PRK
+
+    if [[ $PRK == "null" ]]; then
+          message="The computer with serial : $serial \n\n doesn't have a recovery key in Jamf."
+        else
+          message="The Personal Recovery Key for\n\n"$serial" is:\n\n"$PRK""
+    fi
+
+# Display the info to the user
+show_dialog_msg
+  
+fi
+
+######## CHANGE RECOVERY KEY ############################# CHANGE RECOVERY KEY ########
+######## CHANGE RECOVERY KEY ############################# CHANGE RECOVERY KEY ########
+
+if [[ "$option" == "Change Personal Recovery Key" ]]; then
+  
+GroupID="1272"
+GroupName="Change LAPS Password"
+
+# API endpoint
+API_URL="JSSResource/computergroups/id/${GroupID}"
+echo $API_URL
+  
+# API data adding to the endpoint
+apiData="<computer_group><id>${GroupID}</id><name>${GroupName}</name><computer_additions><computer><name>$serial</name></computer></computer_additions></computer_group>"
+echo $apiData
+
+curl -s \
+	--header "Authorization: Bearer $access_token" --header "Content-Type: text/xml" \
+	--url "${JSS_URL}/${API_URL}" \
+	--data "${apiData}" \
+  --request PUT \
+echo "The Computer with Serial **$serial** has been added to the static group"
+    
+message="The LAPS password for "$serial"\n\n ... is scheduled for change.\n\nThis may take a few hours."
+
+# Display the info to the user
+show_dialog_msg
+
+fi
+
+######## ENABLE REMOTE DESKTOP ############################# ENABLE REMOTE DESKTOP ########
+######## ENABLE REMOTE DESKTOP ############################# ENABLE REMOTE DESKTOP ########
+
+if [[ "$option" == "Enable Remote Desktop" ]]; then
+
+  RemoteCommand="EnableRemoteDesktop"
+
+  section="GENERAL"
+  computerDetails=$(curl -s -H "accept: application/json" -H "Authorization: Bearer $access_token" "$JSS_URL/api/v1/computers-inventory?section=$section&page=0&page-size=100&filter=hardware.serialNumber==$serial")
+  echo $computerDetails
+
+  # Parse the necessary details from the response
+  computerJSSID=$(echo "$computerDetails" | jq -r '.results[0].id')
+  computerUdid=$(echo "$computerDetails" | jq -r '.results[0].udid')
+  managementId=$(echo "$computerDetails" | jq -r '.results[0].general.managementId')
+
+  echo "Computer JSS ID: $computerJSSID"
+  echo "Computer UDID: $computerUdid"
+  echo "Management ID: $managementId"
+
+  # API endpoint
+  API_URL="JSSResource/computercommands/command/$RemoteCommand/id/${computerJSSID}"
+  echo $API_URL
+
+  curl -s \
+    --header "Authorization: Bearer ${access_token}" --header "Content-Type: text/xml" \
+    --url "${JSS_URL}/${API_URL}" \
+    --request POST \
+
+  echo "The Computer with Serial $serial has had Remote Desktop Enabled"
+      
+  message="The Computer with **"$serial"**\n\n ... has had Remote Desktop Enabled"
+
+  # Display the info to the user
+  show_dialog_msg
+
+fi
+
+######## MOBILE DEVICE COMMANDS ############################# MOBILE DEVICE COMMANDS ########
+######## MOBILE DEVICE COMMANDS ############################# MOBILE DEVICE COMMANDS ########
+
+if [[ "$deviceType" == "mobile" && "$option" != "Check Prestage Assignment" ]]; then
+
+
+  if [[ "$option" == "Update Inventory" ]]; then
+    MDMCommand="DEVICE_INFORMATION"
+  elif [[ "$option" == "Clear Passcode" ]]; then
+    MDMCommand="CLEAR_PASSCODE"
+  elif [[ "$option" == "Restart Device" ]]; then
+    MDMCommand="RESTART_DEVICE"
+  elif [[ "$option" == "Assign Device to User" ]]; then
+
+
+      dialogCMD="$dialogApp --ontop --title \"$dialogTitle\" \
+      --message \"Please enter the Username to assign the device too.  \n\nEnsure you are using the correct format for username.  \nIf you are unsure, search in SNOW or AD for the user.\" \
+      --icon \"$mainIcon\" \
+      --appearance 'light' \
+      --moveable \
+      --button1text \"OK\" \
+      --button2text \"Quit\" \
+      --overlayicon \"$overlayIcon\" \
+      --titlefont 'size=28' \
+      --messagefont 'size=24' \
+      --textfield \"Username\",required=true,prompt=\"Please enter the Username.\" \
+      --position 'centre' \
+      --quitkey k"
+
+      # First Prompt of Swift_dialog is here and waits for user input
+      userInput=$( eval "$dialogCMD" )
+      # Grab the exit code result
+      result=$?
+      echo $result
+
+      # Check if the user canceled the dialog
+      if [[ ${result} -ne 0 ]]; then
+          echo "Cancelled by User"
+          exit 0
+      fi
+
+      echo "$userInput" 
+      # Extract the username from the user input
+      username=$(echo "$userInput" | grep -i '^Username' | awk -F ' : ' '{print $2}' | xargs)
+      echo "$username"
+      updateUsername=true
+  fi
+
+  # API commands to grab details of a mobile device
+#section of mobile device details, if not specified, General section data is returned. Multiple section parameters are supported, e.g. section=GENERAL&section=HARDWARE
+#Available values : GENERAL, HARDWARE, USER_AND_LOCATION, PURCHASING, SECURITY, APPLICATIONS, EBOOKS, NETWORK, SERVICE_SUBSCRIPTIONS, CERTIFICATES, PROFILES, USER_PROFILES, PROVISIONING_PROFILES, SHARED_USERS, EXTENSION_ATTRIBUTES
+section="GENERAL"
+mobileDetails=$(curl -s -H "accept: application/json" -H "Authorization: Bearer $access_token" "$JSS_URL/api/v2/mobile-devices/detail?section=$section&page=0&page-size=100&filter=serialNumber==$serial")
+echo $mobileDetails
+
+# Parse the necessary details from the response
+mobileJSSID=$(echo "$mobileDetails" | jq -r '.results[0].mobileDeviceId')
+mobileUdid=$(echo "$mobileDetails" | jq -r '.results[0].general.udid')
+managementId=$(echo "$mobileDetails" | jq -r '.results[0].general.managementId')
+
+echo "Mobile JSS ID: $mobileJSSID"
+echo "Mobile UDID: $mobileUdid"
+echo "Management ID: $managementId"
+
+  if [[ "$updateUsername" == true ]]; then
+    updatePayload=$(cat <<EOF
+{
+  "location": {
+    "username": "$username"
+  }
+}
+EOF
+)
+    updateResponse=$(curl --request PATCH \
+      --url "$JSS_URL/api/v2/mobile-devices/$mobileJSSID" \
+      --header "Authorization: Bearer $access_token" \
+      --header 'Content-Type: application/json' \
+      --data "$updatePayload")
+    #echo "Username update response: $updateResponse"
+
+    message="The selected device has been assigned to : **"$username"**"
+
+    # Display the info to the user
+    show_dialog_msg
+  else
+    json_data=$(cat <<EOF
+{
+  "commandData": {
+    "commandType": "$MDMCommand"
+  },
+  "clientData": [
+    {
+      "managementId": "$managementId"
+    }
+  ]
+}
+EOF
+)
+    curl_response=$(curl --request POST \
+      --url "$JSS_URL/api/v2/mdm/commands" \
+      --header "Authorization: Bearer $access_token" \
+      --header 'accept: application/json' \
+      --header 'content-type: application/json' \
+      --data "$json_data")
+    #echo "Curl Response: $curl_response"
+    
+    message="The selected commands have been sent to the device with\n\nSerial: **"$serial"**"
+
+    # Display the info to the user
+    show_dialog_msg
+  fi
 
 fi
 
